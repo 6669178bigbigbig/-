@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WeChat Jump</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 顶部 UI 栏 (只保留一份，杜绝重复) -->
+    <header id="top-bar">
+        <div id="shield-status" class="glass-panel" style="display:none;">
+            <span class="shield-icon">🛡</span>
+            <span id="shield-value">0</span>
+        </div>
+
+        <div id="top-center-group">
+            <div id="score-display">
+                <span id="score-value">0</span>
+            </div>
+            <div id="mode-toggle" class="glass-panel">
+                <span id="mode-text">🔥 困难</span>
+            </div>
+        </div>
+
+        <button id="shop-btn" class="glass-btn">获取补给</button>
+    </header>
+
+    <!-- 蓄力条 -->
+    <div id="charge-indicator">
+        <div id="charge-fill"></div>
+    </div>
+
+    <!-- 抛物线轨迹 (dom 层说明标签，实际渲染在 Three.js 中) -->
+    <div id="trajectory-hint" style="display:none;">⚡ 松手起跳</div>
+
+    <!-- Game Over 遮罩 -->
+    <div id="game-over-overlay" class="overlay hidden">
+        <div class="glass-modal">
+            <h2 class="title-thin">GAME OVER</h2>
+            <div class="score-display">
+                <span class="score-label">最终得分</span>
+                <span id="final-score">0</span>
+            </div>
+            <div class="combo-record">
+                <span class="score-label">最高连击</span>
+                <span id="max-combo-display">0</span>
+            </div>
+            <button id="retry-btn" class="primary-btn">再来一局</button>
+        </div>
+    </div>
+
+    <!-- 商城遮罩 -->
+    <div id="shop-overlay" class="overlay hidden">
+        <div class="glass-modal shop-modal">
+            <h3 class="title-thin">能量补给站</h3>
+            <p class="desc-text">激活无敌护盾，掉落时自动复活并吸附到目标平台。</p>
+
+            <div class="product-card">
+                <div class="product-header">
+                    <span class="product-name">🛡 护盾充能 x 3</span>
+                    <span class="product-price">¥ 1.00</span>
+                </div>
+                <div class="qr-container">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=JumpPremium"
+                        alt="付款码" class="qr-code">
+                </div>
+                <p class="hint-text">请使用微信扫码支付</p>
+            </div>
+
+            <div class="action-group">
+                <button id="close-shop-btn" class="secondary-btn">稍后再说</button>
+                <button id="confirm-pay-btn" class="primary-btn">我已支付</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js 渲染器 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
