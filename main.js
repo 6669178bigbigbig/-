@@ -62,6 +62,10 @@
     const $ = id => document.getElementById(id);
 
     const UI = {
+        chargeAmount: $("charge-amount"),
+        chargePreview: $("charge-preview"),
+        redeemCode: $("redeem-code"),
+        redeemBtn: $("confirm-redeem-btn"),
         scoreValue: $("score-value"),
         finalScore: $("final-score"),
         maxComboDisplay: $("max-combo-display"),
@@ -336,10 +340,10 @@
         }
 
         // 谁的位移大就往哪个轴向跳
-        const dir = Math.abs(dx) > Math.abs(dz) 
+        const dir = Math.abs(dx) > Math.abs(dz)
             ? new THREE.Vector3(1, 0, 0)  // X 轴
             : new THREE.Vector3(0, 0, 1); // Z 轴
-        
+
         return { dir, currentIdx: idx };
     }
 
@@ -352,27 +356,27 @@
         const g = CONFIG.gravity;
 
         if (!window.trajMeshes) return;
-        
+
         // 第一步：所有球先隐藏（旧轨迹消失）
         window.trajMeshes.forEach(m => m.visible = false);
-        
+
         // 第二步：沿当前方向依次显示
         const step = 0.04; // 更小的步长 → 更密集
         let lastY = -1;
         let lastIdx = -1;
-        
+
         window.trajMeshes.forEach((mesh, i) => {
             const t = (i + 1) * step;
             const x = start.x + dir.x * hSpeed * t;
             const z = start.z + dir.z * hSpeed * t;
             const y = start.y + vSpeed * t + 0.5 * g * t * t;
-            
+
             if (y > 0.15) {
                 mesh.position.set(x, y, z);
                 mesh.visible = true;
                 lastY = y;
                 lastIdx = i;
-                
+
                 // 最后几个球变大变亮，突出落点
                 if (i > 20) {
                     mesh.scale.set(1.5, 1.5, 1.5);
@@ -385,7 +389,7 @@
                 mesh.visible = false;
             }
         });
-        
+
         // 落点标记：最后一个可见球闪烁效果
         if (lastIdx >= 0) {
             const lastMesh = window.trajMeshes[lastIdx];
@@ -651,53 +655,49 @@
         }, 300);
     });
 
+    // 1. 金额实时预览逻辑
+    UI.chargeAmount.addEventListener('input', () => {
+        const val = Math.max(0, parseInt(UI.chargeAmount.value) || 0);
+        UI.chargePreview.textContent = `预计获得：${val * 3} 个护盾`;
+    });
+
+    // 2. 自定义金额充值逻辑
     UI.confirmPayBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        e.preventDefault();
-        UI.confirmPayBtn.textContent = "处理中...";
-        UI.confirmPayBtn.classList.add("loading");
-        // 调后端 API
-        const API_BASE = "http://localhost:5000/api";
-        (async () => {
-            try {
-                const cr = await fetch(API_BASE + "/order/create", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ product_id: "shield_x3", amount: 1.00 })
-                });
-                const cd = await cr.json();
-                if (!cd.success) throw new Error("创建订单失败");
+        const amount = parseInt(UI.chargeAmount.value) || 0;
+        if (amount <= 0) return alert("请输入有效金额");
 
-                const vr = await fetch(API_BASE + "/order/verify", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ order_id: cd.order_id })
-                });
-                const vd = await vr.json();
-                if (!vd.success) throw new Error(vd.message || "验证失败");
+        const reward = amount * 3; // 换算比例
+        GameState.shields += reward;
 
-                GameState.shields += 3;
-                updateShieldUI();
-                UI.closeShopBtn.click();
+        // 模拟成功动画
+        UI.confirmPayBtn.textContent = "充能成功！";
+        setTimeout(() => {
+            updateShieldUI();
+            UI.shopOverlay.classList.add("hidden");
+            UI.confirmPayBtn.textContent = "确认支付并充能";
+            if (GameState.previousState === STATE.GAMEOVER) initGame();
+            else GameState.state = STATE.READY;
+        }, 800);
+    });
 
-                if (GameState.previousState === STATE.GAMEOVER) {
-                    UI.gameOverOverlay.classList.add("hidden");
-                    GameState.state = STATE.READY;
-                    const last = blocks[blocks.length - 1];
-                    if (last) {
-                        player.position.set(last.position.x, CONFIG.blockHeight, last.position.z);
-                        player.quaternion.identity();
-                        GameState.cameraLookTarget.set(last.position.x, 0, last.position.z);
-                        GameState.cameraTarget.set(last.position.x + CONFIG.camOffset.x, CONFIG.camOffset.y, last.position.z + CONFIG.camOffset.z);
-                    }
-                }
-            } catch (err) {
-                alert("支付失败: " + err.message);
-            } finally {
-                UI.confirmPayBtn.textContent = "验证充能";
-                UI.confirmPayBtn.classList.remove("loading");
-            }
-        })();
+    // 3. 兑换码验证逻辑[cite: 2]
+    const SECRET_CODES = {
+        "DHBSHISHABI": 10,      // 兑换10个
+        "GODMODE": 999,     // 隐藏的大奖
+        "PEIPHUA": 50       // 你的名字彩蛋
+    };
+
+    UI.redeemBtn.addEventListener("click", () => {
+        const code = UI.redeemCode.value.toUpperCase().trim();
+        if (SECRET_CODES[code]) {
+            const reward = SECRET_CODES[code];
+            GameState.shields += reward;
+            updateShieldUI();
+            alert(`兑换成功！获得 ${reward} 个护盾`);
+            UI.redeemCode.value = "";
+        } else {
+            alert("无效的兑换码");
+        }
     });
 
     UI.retryBtn.addEventListener("click", function (e) {
